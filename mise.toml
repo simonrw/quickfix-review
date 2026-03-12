@@ -1,0 +1,6 @@
+[tools]
+node = "25"
+"npm:@fission-ai/openspec" = "latest"
+
+[env]
+OEPNSPEC_TELEMETRY = "0"
