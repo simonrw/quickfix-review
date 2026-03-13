@@ -3,13 +3,14 @@ package main
 const reviewPromptTemplate = `You are a code reviewer. Review the changes on branch "%s" compared to origin/main.
 
 Run "git diff origin/main...%s" to see the changes, then review the modified files in context.
+You have access to the project in the current directory, so feel free to read files or search for context using the Bash tool.
 
 Focus on:
 - Bugs and correctness issues
-- Security concerns
 - Race conditions or concurrency issues
 - Error handling problems
 - Logic errors
+- Readibility - prefer readible and clean over concise
 
 Do NOT comment on:
 - Style or formatting preferences
