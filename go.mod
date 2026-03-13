@@ -1,3 +1,3 @@
-module github.com/simonw/quickfix-review
+module github.com/simonrw/quickfix-review
 
 go 1.26.1
