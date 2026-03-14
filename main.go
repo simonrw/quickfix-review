@@ -26,6 +26,7 @@ type claudeResponse struct {
 func main() {
 	branch := flag.String("branch", "", "branch to review (default: current branch)")
 	debug := flag.Bool("debug", false, "show claude's full output instead of spinner")
+	printOnly := flag.Bool("print", false, "print quickfix lines to stdout without launching nvim")
 	flag.Parse()
 
 	// Pre-flight checks
@@ -34,10 +35,13 @@ func main() {
 		fmt.Fprintln(os.Stderr, "error: claude not found on PATH")
 		os.Exit(1)
 	}
-	nvimPath, err := exec.LookPath("nvim")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, "error: nvim not found on PATH")
-		os.Exit(1)
+	var nvimPath string
+	if !*printOnly {
+		nvimPath, err = exec.LookPath("nvim")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "error: nvim not found on PATH")
+			os.Exit(1)
+		}
 	}
 
 	// Determine branch
@@ -63,6 +67,8 @@ func main() {
 	if *debug {
 		fmt.Fprintf(os.Stderr, "[prompt] %s\n\n", prompt)
 		out, err = runClaudeDebug(claudePath, prompt)
+	} else if *printOnly {
+		out, err = runClaudeSilent(claudePath, prompt)
 	} else {
 		out, err = runClaudeQuiet(claudePath, prompt)
 	}
@@ -94,7 +100,9 @@ func main() {
 	}
 
 	if len(comments) == 0 {
-		fmt.Fprintln(os.Stderr, "no review comments found")
+		if !*printOnly {
+			fmt.Fprintln(os.Stderr, "no review comments found")
+		}
 		os.Exit(0)
 	}
 
@@ -104,6 +112,11 @@ func main() {
 		msg := strings.ReplaceAll(c.Message, "\n", " ")
 		msg = strings.ReplaceAll(msg, "\r", " ")
 		lines = append(lines, fmt.Sprintf("%s:%d:%d:%s", c.File, c.Line, c.Col, msg))
+	}
+
+	if *printOnly {
+		fmt.Print(strings.Join(lines, "\n") + "\n")
+		return
 	}
 
 	// Write temp file
@@ -125,6 +138,12 @@ func main() {
 		fmt.Fprintf(os.Stderr, "error: could not exec nvim: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+// runClaudeSilent runs claude with --output-format json and no spinner or stderr output.
+func runClaudeSilent(claudePath, prompt string) ([]byte, error) {
+	cmd := exec.Command(claudePath, "-p", prompt, "--output-format", "json")
+	return cmd.Output()
 }
 
 // runClaudeQuiet runs claude with --output-format json and shows a spinner.
